@@ -2,45 +2,42 @@ const path = require('path');
 const fs = require('fs');
 const util = require('util');
 
-const boysPath = (path.join(__dirname, 'boys'));
-const girlPath = (path.join(__dirname, 'girls'));
+const boysPath = (path.join(__dirname, 'gender', 'boys'));
+const girlPath = (path.join(__dirname, 'gender', 'girls'));
 const readPromise = util.promisify(fs.readFile);
 const renamePromise = util.promisify(fs.rename);
 
-fs.readdir(boysPath, (err, files) => {
-    if (err) {
-        console.log(err);
-        return;
-    }
-    files.forEach(elem => {
-        const currentFile = path.join(__dirname, 'boys', elem);
-        readPromise(currentFile).then(data => {
-            data = JSON.parse(data);
-            for (let key in data) {
-                if (data[key] === "female") {
-                    renamePromise(currentFile, path.join(girlPath, elem)).catch(err => console.log(err));
-                }
-            }
+function searchFile(dir) {
+    fs.readdir(dir, (err, data) => {
 
-        })
-    });
-    fs.readdir(girlPath, (err, girlFiles) => {
         if (err) {
-            console.log(err);
-            return;
+            return console.log(err);
         }
-        girlFiles.forEach(values => {
-            const girlCurrentFile = path.join(__dirname, 'girls', values);
-            readPromise(girlCurrentFile).then(girlData => {
-                girlData = JSON.parse(girlData);
-                for (let key in girlData) {
-                    if (girlData[key] === "male") {
-                        renamePromise(girlCurrentFile, path.join(boysPath, values)).catch(err => console.log(err));
+
+        data.forEach(values => {
+            const currentData = path.join(dir, values);
+
+            if (fs.statSync(currentData, values).isFile()) {
+
+                readPromise(currentData).then(data => {
+                    data = JSON.parse(data);
+
+                    for (const key in data) {
+
+                        if (data[key] === "female") {
+                            renamePromise(currentData, path.join(girlPath, values)).catch(err => console.log(err));
+                        }
+                        if (data[key] === "male") {
+                            renamePromise(currentData, path.join(boysPath, values)).catch(err => console.log(err));
+                        }
                     }
-                }
-            })
+                });
+            }
+            if (fs.statSync(currentData, values).isDirectory()) return searchFile(currentData);
         });
-    })
-});
+    });
+}
+
+searchFile(path.join(__dirname, 'gender'));
 
 
